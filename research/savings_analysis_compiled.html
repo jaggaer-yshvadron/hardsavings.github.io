@@ -1,0 +1,1381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hard Saving Analysis</title>
+  <style>
+    :root {
+      --bg: #f5f1e8;
+      --panel: #fffdf8;
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --line: #d6d3d1;
+      --accent: #9f1239;
+      --accent-soft: #fce7ef;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f8f4eb 0%, #efe8d9 100%);
+    }
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 2rem;
+      line-height: 1.15;
+    }
+    .page-title {
+      margin-bottom: 0.2rem;
+    }
+    .page-byline {
+      margin: 0 0 1rem;
+      font-family: "Segoe Print", "Bradley Hand", "Comic Sans MS", cursive;
+      font-size: 0.98rem;
+      line-height: 1.1;
+      color: var(--muted);
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      margin-top: 20px;
+    }
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #f3eee4;
+      color: var(--ink);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      font: 600 0.95rem Arial, Helvetica, sans-serif;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .panel {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .panel.active {
+      display: block;
+    }
+    .doc {
+      padding: 28px 34px 34px;
+      background: #faf8f2;
+      line-height: 1.55;
+    }
+    .doc h1, .doc h2, .doc h3 {
+      color: #111827;
+      line-height: 1.2;
+    }
+    .doc h1 {
+      font-size: 2rem;
+      margin-top: 0;
+    }
+    .doc h2 {
+      font-size: 1.35rem;
+      margin-top: 1.35rem;
+      margin-bottom: 0.55rem;
+      border-top: 1px solid #d1d5db;
+      padding-top: 0.8rem;
+    }
+    .doc h3 {
+      font-size: 1.05rem;
+      margin-top: 1rem;
+      margin-bottom: 0.35rem;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    .doc p, .doc li {
+      font-size: 1rem;
+    }
+    .doc p {
+      margin: 0.35rem 0 0.65rem;
+    }
+    .doc code {
+      background: #ece7db;
+      padding: .08rem .3rem;
+      border-radius: 4px;
+      font-family: "Courier New", monospace;
+    }
+    .doc ul, .doc ol {
+      margin: 0.25rem 0 0.65rem 1.4rem;
+    }
+    .doc a {
+      color: #9f1239;
+      text-decoration: none;
+    }
+    .doc a:hover {
+      text-decoration: underline;
+    }
+    .doc .ref {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: .78rem;
+      vertical-align: super;
+      margin-left: .18rem;
+      color: #b91c1c;
+    }
+    .doc .ref a {
+      color: #b91c1c;
+    }
+    .reco {
+      padding: 28px;
+      line-height: 1.55;
+    }
+    .reco h2, .reco h3 {
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.2;
+    }
+    .reco h2 {
+      margin-top: 0;
+      font-size: 1.4rem;
+    }
+    .reco h3 {
+      margin-top: 1.4rem;
+      font-size: 1.05rem;
+    }
+    .note {
+      background: var(--accent-soft);
+      border: 1px solid #f9a8c1;
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin: 14px 0 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      background: white;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f6f1e7;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 0.92rem;
+    }
+    ul {
+      margin: 0.5rem 0 0.9rem 1.2rem;
+    }
+    td ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+    td li {
+      margin: 0 0 0.3rem;
+    }
+    .formula-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .formula-list li {
+      margin: 0 0 0.7rem;
+    }
+    .formula {
+      display: block;
+      padding: 0.35rem 0;
+      font-family: "Cambria Math", Cambria, Georgia, "Times New Roman", serif;
+      font-size: 1.04rem;
+      line-height: 1.4;
+      letter-spacing: 0.01em;
+    }
+    .formula-metric {
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+    .metric-blue {
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+    .metric-red {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+    .metric-purple {
+      color: #7c3aed;
+      font-weight: 700;
+    }
+    .formula-metric-red {
+      color: #b91c1c;
+      font-weight: 700;
+    }
+    .small {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 class="page-title">Hard Saving Analysis</h1>
+    <div class="page-byline">(compiled by Codex and Yaara)</div>
+
+    <div class="tabs" role="tablist" aria-label="Savings analysis tabs">
+      <button class="tab-btn active" data-tab="web">AI web research</button>
+      <button class="tab-btn" data-tab="status">Current Status</button>
+      <button class="tab-btn" data-tab="hard">Hard Savings</button>
+      <button class="tab-btn" data-tab="soft">Soft Savings</button>
+      <button class="tab-btn" data-tab="example">Example</button>
+    </div>
+
+    <section class="panel active" id="panel-web">
+      <div class="doc">
+        <h1>Procure-to-Pay Hard Savings: Official Calculation Methods, Benchmarks, and Executive Summary</h1>
+        <p>Prepared: April 22, 2026</p>
+        <h2>Executive Summary</h2>
+        <p>Across official procure-to-pay and sourcing platforms, the most defensible definition of hard savings is a realized reduction in paid spend versus an approved baseline for the same or comparable demand. Oracle expresses this most clearly as current amount minus awarded amount, while SAP Ariba uses a governed baseline-spend approach that separates estimated, negotiated, and actual savings.<span class="ref"><a href="#ref-1" title="Oracle: How You Monitor Sourcing Programs">[1]</a></span><span class="ref"><a href="#ref-3" title="SAP Help Portal: Savings Form Sections">[3]</a></span><span class="ref"><a href="#ref-4" title="SAP Help Portal: Savings Forms in Guided Sourcing">[4]</a></span></p>
+        <p>Benchmarking also matters: APQC separates <code>cost takeout</code> from <code>cost avoidance</code>, and cost takeout is the closest benchmark proxy for hard savings.<span class="ref"><a href="#ref-5" title="APQC: cost takeout benchmark">[5]</a></span><span class="ref"><a href="#ref-6" title="APQC: cost avoidance benchmark">[6]</a></span> For executive reporting, the most credible story combines a governed baseline, a clear calculation method, realization rules, and separate reporting for hard savings, cost avoidance, process savings, and ROI.</p>
+        <p>The strongest hard-savings story has four parts:</p>
+        <ol>
+          <li>A governed baseline for price or spend.</li>
+          <li>An event- or contract-level formula that subtracts awarded/negotiated spend from baseline spend.</li>
+          <li>Realization rules that count only implemented and compliant savings as hard savings.</li>
+          <li>Separate reporting for hard savings, cost avoidance, process savings, and ROI.</li>
+        </ol>
+        <h2>Scope and Approach</h2>
+        <p>This summary uses:</p>
+        <ul>
+          <li>Official vendor documentation from Oracle and SAP.</li>
+          <li>External benchmarking from APQC.</li>
+          <li>Benchmark-backed directional context from The Hackett Group.</li>
+        </ul>
+        <h2>What Official Systems Treat as Hard Savings</h2>
+        <h3>1. Oracle Procurement / Oracle Sourcing</h3>
+        <p>Oracle provides the clearest explicit formula in the sources reviewed.</p>
+        <ul>
+          <li>In sourcing program monitoring, Oracle defines:</li>
+          <li><code>Negotiated Savings = Negotiation Current Amount - Negotiated Award Amount</code><span class="ref"><a href="#ref-1" title="Oracle: How You Monitor Sourcing Programs">[1]</a></span></li>
+          <li><code>Negotiated Savings (%) = Negotiated Savings / Negotiation Current Amount</code><span class="ref"><a href="#ref-1" title="Oracle: How You Monitor Sourcing Programs">[1]</a></span></li>
+          <li>In award-by-spreadsheet workflows, Oracle also shows the mechanics behind the baseline:</li>
+          <li><code>Total current amount = number of units being awarded * current price</code><span class="ref"><a href="#ref-2" title="Oracle Procurement Cloud Using Procurement">[2]</a></span></li>
+          <li><code>Total Award Amount</code> is the awarded value<span class="ref"><a href="#ref-2" title="Oracle Procurement Cloud Using Procurement">[2]</a></span></li>
+          <li><code>Total Savings Amount</code> is the current amount saved<span class="ref"><a href="#ref-2" title="Oracle Procurement Cloud Using Procurement">[2]</a></span></li>
+        </ul>
+        <p>What this means in practice:</p>
+        <ul>
+          <li>Oracle's hard-savings logic is baseline-minus-award.</li>
+          <li>The baseline is the current amount or current price for the item/service.</li>
+          <li>Savings are quantified at line, negotiation, objective, and program level.</li>
+        </ul>
+        <h2>2. SAP Ariba Sourcing / Guided Sourcing</h2>
+        <p>SAP Ariba uses a governed savings-form model rather than a single one-line formula.</p>
+        <ul>
+          <li>SAP says savings forms are used to track savings and spend and generate savings reports.<span class="ref"><a href="#ref-4" title="SAP Help Portal: Savings Forms in Guided Sourcing">[4]</a></span></li>
+          <li>SAP identifies <code>Estimated Savings</code>, <code>Negotiated Savings</code>, and <code>Actual Savings</code>.<span class="ref"><a href="#ref-3" title="SAP Help Portal: Savings Form Sections">[3]</a></span></li>
+          <li>SAP states that calculations in a savings form are based on <code>baseline spend</code>.<span class="ref"><a href="#ref-3" title="SAP Help Portal: Savings Form Sections">[3]</a></span></li>
+          <li>SAP allows multiple baseline types, including:</li>
+          <li>historic price</li>
+          <li>market price</li>
+          <li>estimated price</li>
+          <li>industry published price</li>
+          <li>vendor published price</li>
+          <li>budget</li>
+          <li>SAP also notes that awarded events can populate fields including <code>Baseline spend</code>, <code>Negotiated spend</code>, and <code>Negotiated savings</code>.<span class="ref"><a href="#ref-3" title="SAP Help Portal: Savings Form Sections">[3]</a></span></li>
+        </ul>
+        <p>What this means in practice:</p>
+        <ul>
+          <li>SAP supports hard-savings governance through baseline discipline.</li>
+          <li>The implied hard-savings logic is still baseline spend minus negotiated spend, with later true-up into actual savings once purchases occur.</li>
+          <li>SAP is especially strong where procurement needs auditability around baseline selection.</li>
+        </ul>
+        <h2>3. Common Pattern Across Official Software</h2>
+        <p>From the Oracle and SAP materials together, the common enterprise pattern is:</p>
+        <ul>
+          <li><code>Hard savings amount = approved baseline spend - awarded or negotiated spend</code></li>
+          <li><code>Hard savings % = hard savings amount / approved baseline spend</code></li>
+        </ul>
+        <p>The main implementation differences are:</p>
+        <ul>
+          <li>Oracle is more explicit in the formula.</li>
+          <li>SAP is more explicit in baseline governance and lifecycle stages.</li>
+        </ul>
+        <h2>Benchmarking and Validated Research</h2>
+        <h3>APQC: Hard Savings Should Be Separated from Cost Avoidance</h3>
+        <p>APQC gives the cleanest benchmarking distinction.</p>
+        <ul>
+          <li>APQC defines <code>cost takeout</code> as paying less for what was already being purchased, calculated as the difference between current and prior-year spend for the same or similar recurring purchases.<span class="ref"><a href="#ref-5" title="APQC: cost takeout benchmark">[5]</a></span></li>
+          <li>APQC reports a cross-industry median of <code>2.0% of spend</code> for typical savings achieved through cost takeout that procurement organizations actually deliver.<span class="ref"><a href="#ref-5" title="APQC: cost takeout benchmark">[5]</a></span></li>
+          <li>APQC defines <code>cost avoidance</code> as reducing future costs, such as negotiating lower rates for new goods and services to be purchased.<span class="ref"><a href="#ref-6" title="APQC: cost avoidance benchmark">[6]</a></span></li>
+          <li>APQC reports a cross-industry median of <code>2.0% of spend</code> for typical savings achieved through cost avoidance.<span class="ref"><a href="#ref-6" title="APQC: cost avoidance benchmark">[6]</a></span></li>
+        </ul>
+        <p>Interpretation:</p>
+        <ul>
+          <li><code>Cost takeout</code> is the closest benchmark proxy for hard savings.</li>
+          <li><code>Cost avoidance</code> should usually be reported separately.</li>
+        </ul>
+        <h3>The Hackett Group: Directional Benchmark Context</h3>
+        <p>Hackett is useful as directional benchmark context, though less formulaic than Oracle/APQC.</p>
+        <ul>
+          <li>Hackett states world-class procurement still delivers <code>9X payback on investment in procurement processes</code>.<span class="ref"><a href="#ref-7" title="The Hackett Group: Sourcing and Procurement Benchmarking">[7]</a></span></li>
+          <li>Hackett also promotes benchmark-backed findings that digital world-class procurement teams can drive <code>8%+ cost savings</code>.<span class="ref"><a href="#ref-8" title="The Hackett Group: Digital World Class Procurement">[8]</a></span></li>
+        </ul>
+        <p>Interpretation:</p>
+        <ul>
+          <li>These figures are useful for executive context and ambition-setting.</li>
+          <li>They are less suitable than Oracle or APQC for event-level calculation rules.</li>
+        </ul>
+        <h2>How Procurement Officers Commonly Calculate Hard Savings</h2>
+        <p>Based on the primary sources above, and inferred from how the systems are designed, the most defensible procurement hard-savings method is:</p>
+        <h3>Baseline</h3>
+        <p>Use one approved baseline per event, lot, line, or contract:</p>
+        <ul>
+          <li>incumbent price</li>
+          <li>prior-year spend for same demand</li>
+          <li>current contracted price</li>
+          <li>budget or market benchmark only when no incumbent exists</li>
+        </ul>
+        <h3>Calculation</h3>
+        <ul>
+          <li><code>Hard savings amount = baseline spend - awarded/negotiated spend</code></li>
+          <li><code>Hard savings % = hard savings amount / baseline spend</code></li>
+        </ul>
+        <h3>Realization Rule</h3>
+        <p>Count as hard savings only when:</p>
+        <ul>
+          <li>the savings is tied to actual awarded business or executed contract terms</li>
+          <li>volumes are materially comparable to the baseline case</li>
+          <li>the new price is implemented</li>
+          <li>off-contract leakage or non-compliance does not materially erode the result</li>
+        </ul>
+        <h3>Reporting Rule</h3>
+        <p>Report separately:</p>
+        <ul>
+          <li>hard savings / cost takeout</li>
+          <li>cost avoidance</li>
+          <li>process savings / labor savings</li>
+          <li>working-capital benefits such as early payment discounts</li>
+          <li>ROI</li>
+        </ul>
+        <h2>How Companies Usually Show Hard Savings in Practice</h2>
+        <p>From the official sources and benchmark structures, companies typically show hard savings using one or more of these views:</p>
+        <ul>
+          <li><code>Negotiated savings</code> by sourcing event, category, business unit, or time period.</li>
+          <li><code>On-contract savings</code> or contracted price reduction versus prior state.</li>
+          <li><code>Realized savings</code> once spend flows through the new award or contract.</li>
+          <li><code>Savings % of spend</code>, especially for executive benchmarking.</li>
+          <li><code>Program savings</code> rolled up from events to enterprise totals.</li>
+        </ul>
+        <p>The most mature organizations also show:</p>
+        <ul>
+          <li>baseline type used</li>
+          <li>compliance/adoption level</li>
+          <li>hard versus soft split</li>
+          <li>target versus realized variance</li>
+        </ul>
+        <h2>Competitor Snapshot</h2>
+        <p>Current market alternatives commonly include <code>Coupa</code>, <code>SAP Ariba</code>, <code>GEP SMART</code>, <code>Ivalua</code>, <code>Zycus</code>, and <code>Oracle Fusion Cloud Procurement</code>, based on Gartner Peer Insights alternatives for ONE.<span class="ref"><a href="#ref-9" title="Gartner Peer Insights: ONE alternatives">[9]</a></span></p>
+        <p>From the official vendor sources reviewed, the main savings and value-reporting patterns are:</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Competitor</th>
+              <th>What They Show in Savings or Value Reporting</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Coupa</td>
+              <td>
+                <ul>
+                  <li><code>Spend under management</code>, <code>spend visibility</code>, and cycle-time metrics in customer stories.<span class="ref"><a href="#ref-10" title="Coupa customer story and value report">[10]</a></span></li>
+                  <li>Industry-specific <code>value reports</code> that estimate annual business value and break it into value drivers.<span class="ref"><a href="#ref-11" title="Coupa value report">[11]</a></span></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>SAP Ariba</td>
+              <td>
+                <ul>
+                  <li><code>Value Analytics</code>, <code>Cost Savings</code>, <code>Spend Compliance</code>, <code>Working Capital</code>, and <code>Process Improvement</code> in SAP’s analytics content package.<span class="ref"><a href="#ref-12" title="SAP Ariba strategic spend overview">[12]</a></span></li>
+                  <li>Positioning that negotiated savings should reach the bottom line through compliance and procure-to-pay control.<span class="ref"><a href="#ref-13" title="SAP Ariba procure-to-pay">[13]</a></span></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Oracle</td>
+              <td>
+                <ul>
+                  <li><code>Negotiated savings</code>, <code>current amount</code>, <code>awarded amount</code>, and <code>total savings amount</code> in sourcing and award views.<span class="ref"><a href="#ref-1" title="Oracle sourcing programs">[1]</a></span><span class="ref"><a href="#ref-2" title="Oracle procurement fields">[2]</a></span></li>
+                  <li>Overall procurement positioning around increased savings, sourcing outcomes, and profitability.<span class="ref"><a href="#ref-14" title="Oracle procurement">[14]</a></span></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Ivalua</td>
+              <td>
+                <ul>
+                  <li><code>Negotiated savings</code>, <code>realized savings</code>, and <code>savings tracking</code> through action plans and dashboards.<span class="ref"><a href="#ref-15" title="Ivalua savings tracking">[15]</a></span></li>
+                  <li>Reporting on <code>spend analysis</code>, <code>contract compliance</code>, <code>leakage</code>, and measurable outcomes across initiatives.<span class="ref"><a href="#ref-16" title="Ivalua analytics and dashboards">[16]</a></span></li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>GEP SMART</td>
+              <td>
+                <ul>
+                  <li><code>Savings dashboard</code> views of projected savings by category, region, or business unit.<span class="ref"><a href="#ref-17" title="GEP savings dashboard">[17]</a></span></li>
+                  <li><code>Negotiated</code> and <code>realized savings</code>, plus <code>cost avoidance</code>, <code>cost reduction</code>, <code>bonuses</code>, <code>rebates</code>, and <code>gain sharing</code> with finance validation.<span class="ref"><a href="#ref-18" title="GEP complete savings visibility">[18]</a></span></li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p>Short takeaway: competitors usually show a mix of <code>hard savings</code>, <code>spend compliance</code>, <code>working capital</code>, <code>process improvement</code>, and <code>dashboard visibility</code>, not just one savings number. That supports keeping the story split between hard savings, soft savings, and realization levers.</p>
+        <h2>Recommended Standard for Your Team</h2>
+        <p>If you want a single consistent rule for future value articulation, I recommend:</p>
+        <h3>Use this as the hard-savings definition</h3>
+        <p><code>Hard savings = reduction in actual payable spend versus an approved baseline for the same or equivalent demand, realized through sourcing, contracting, compliance, or payment-term execution.</code></p>
+        <h3>Use these reporting buckets</h3>
+        <ul>
+          <li><code>Hard savings</code>: realized price/spend reduction.</li>
+          <li><code>Cost avoidance</code>: future spend prevented, not yet realized.</li>
+          <li><code>Process savings</code>: labor or cycle-time savings.</li>
+          <li><code>Working capital</code>: early payment discounts and payment-term benefits.</li>
+        </ul>
+        <h3>Use these minimum evidence fields</h3>
+        <ul>
+          <li>baseline source</li>
+          <li>baseline period</li>
+          <li>awarded/negotiated amount</li>
+          <li>savings amount</li>
+          <li>savings %</li>
+          <li>implementation date</li>
+          <li>realization status</li>
+          <li>compliance assumption</li>
+        </ul>
+        <h2>References</h2>
+        <ul>
+          <li id="ref-1">[1] Oracle, <code>How You Monitor Sourcing Programs</code>: <a href="https://docs.oracle.com/en/cloud/saas/procurement/25c/oaprc/how-you-monitor-sourcing-programs.html" title="Open Oracle source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-2">[2] Oracle, <code>Oracle Procurement Cloud Using Procurement</code> (award spreadsheet field definitions): <a href="https://docs.oracle.com/pls/topic/lookup?ctx=E56614-01&amp;id=OAPRC1007481" title="Open Oracle source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-3">[3] SAP Help Portal, <code>Savings Form Sections</code>: <a href="https://help.sap.com/docs/strategic-sourcing/managing-events-with-guided-sourcing/savings-form-sections" title="Open SAP source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-4">[4] SAP Help Portal, <code>Savings Forms in Guided Sourcing</code>: <a href="https://help.sap.com/docs/strategic-sourcing/managing-events-with-guided-sourcing/savings-forms-in-guided-sourcing" title="Open SAP source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-5">[5] APQC, <code>Typical savings achieved through cost takeout (as percent of spend) that procurement organization actually delivers</code>: <a href="https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/typical-savings-achieved-through-cost" title="Open APQC cost takeout benchmark" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-6">[6] APQC, <code>Typical savings achieved through cost avoidance (as percent of spend) that procurement organization actually delivers</code>: <a href="https://www.apqc.org/resources/benchmarking/open-standards-benchmarking/measures/typical-savings-achieved-through-cost-0" title="Open APQC cost avoidance benchmark" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-7">[7] The Hackett Group, <code>Sourcing and Procurement Benchmarking</code>: <a href="https://www.thehackettgroup.com/sourcing-procurement-strategy/sourcing-procurement-benchmarking/" title="Open Hackett benchmarking source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-8">[8] The Hackett Group, <code>Digital World Class Procurement</code>: <a href="https://www.thehackettgroup.com/insights/digital-world-class-procurement-2505/" title="Open Hackett digital procurement source" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-9">[9] Gartner Peer Insights, <code>ONE Alternatives</code>: <a href="https://www.gartner.com/reviews/product/jaggaer-one/alternatives?marketSeoName=source-to-pay-suites" title="Open Gartner alternatives page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-10">[10] Coupa, <code>Talos Energy Gains Visibility, Efficiency and Savings With Coupa</code>: <a href="https://www.coupa.com/customers/talos-energy/" title="Open Coupa customer example" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-11">[11] Coupa, <code>Financial Services Value Report</code>: <a href="https://get.coupa.com/19-Finserv-VR-US_Eng.html" title="Open Coupa value report" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-12">[12] SAP Help / SAP Analytics Cloud, <code>Procurement Strategic Spend Overview</code>: <a href="https://help.sap.com/docs/SAP_ANALYTICS_CLOUD/42093f14b43c485fbe3adbbe81eff6c8/cd0ab3d0e3d94525afa2595f2c780af6.html" title="Open SAP Ariba strategic spend overview" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-13">[13] SAP, <code>Procure-to-Pay Software</code>: <a href="https://www.sap.com/products/spend-management/procure-to-pay-software.html" title="Open SAP procure-to-pay page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-14">[14] Oracle, <code>Procurement Cloud</code>: <a href="https://www.oracle.com/erp/procurement/" title="Open Oracle procurement page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-15">[15] Ivalua, <code>Savings Tracking & Action Plans</code>: <a href="https://info.ivalua.com/plan-dactions-suivi-des-gains-uk" title="Open Ivalua savings tracking page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-16">[16] Ivalua, <code>Analytics and Insights</code>: <a href="https://www.ivalua.com/what-are-procurement-analytics/" title="Open Ivalua analytics page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-17">[17] GEP, <code>Procurement Savings Dashboard</code>: <a href="https://www.gep.com/software/gep-smart/procurement-software/savings-tracking/savings-dashboard" title="Open GEP savings dashboard page" target="_blank" rel="noopener noreferrer">source link</a></li>
+          <li id="ref-18">[18] GEP, <code>Complete Savings Visibility</code>: <a href="https://www.gep.com/software/gep-smart/procurement-software/savings-tracking/complete-savings-visibility" title="Open GEP complete savings visibility page" target="_blank" rel="noopener noreferrer">source link</a></li>
+        </ul>
+        <h2>Notes on Source Quality</h2>
+        <ul>
+          <li>Oracle and SAP are primary product documentation and are the strongest sources for calculation logic.</li>
+          <li>APQC is the strongest validated benchmark source in the reviewed set.</li>
+          <li>Hackett is useful benchmark context, but its public pages are more directional than methodological.</li>
+        </ul>
+      </div>
+    </section>
+
+<section class="panel" id="panel-status">
+      <div class="doc">
+        <h1>The local material already in use</h1>
+        <p>Prepared: April 22, 2026</p>
+        <p>The strongest recurring metrics in the current material are <span class="metric-blue">Spend Under Management</span>, <span class="metric-blue">On-Contract Savings (Hard)</span>, <span class="metric-blue">Potential Early Payment Discounts (Hard)</span>, <span class="metric-blue">Contract Savings</span>, <span class="metric-blue">Estimated Contract Savings</span>, <span class="metric-blue">Estimated Sourcing Savings</span>, <span class="metric-blue">Sourcing</span>, <span class="metric-blue">Sourcing Optimizer</span>, and <span class="metric-blue">ROI Hard</span>. The value-articulation workbook and extracted files confirm these as the main dashboard-ready savings fields already in use.</p>
+
+        <h2>Current Metrics and Calculation Logic</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Metric Found</th>
+              <th>Calculation Found</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="metric-blue">Spend Under Management (SUM)</span></td>
+              <td>Tracked metric; no direct formula found.</td>
+              <td>Best dashboard anchor and most common savings-enabler metric.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">On-Contract Savings (Hard)</span></td>
+              <td><span class="formula"><span class="formula-metric">On-Contract Savings</span> = Total On-Contract Spend × 5%</span></td>
+              <td>Explicit hard-savings label; 5% assumption shown in local slide notes.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Potential Early Payment Discounts (Hard)</span></td>
+              <td>No numeric formula shown; tied to documents exported to ERP before discount expiry.</td>
+              <td>Explicit hard-savings label and a strong finance-facing metric.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Contract Savings</span></td>
+              <td>Defined in the workbook as value of savings for the current period.</td>
+              <td>Core dashboard candidate already present in the central metric inventory.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Estimated Contract Savings</span></td>
+              <td>Shown as a value output; underlying formula not fully visible.</td>
+              <td>Useful in customer storytelling, but not fully auditable from extracted text.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Estimated Sourcing Savings</span></td>
+              <td>Shown as a sourced value output; no direct formula found.</td>
+              <td>Named sourcing metric already present in the local template set.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Sourcing</span></td>
+              <td><span class="formula"><span class="formula-metric">Sourcing Savings</span> = Awarded Sourcing Value × 5%</span></td>
+              <td>Uses the same 5% estimation logic applied to awarded sourcing value.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">Sourcing Optimizer</span></td>
+              <td>Value shown in slide; no stable universal formula shown.</td>
+              <td>Value shown in the local material, but no stable universal formula is shown.</td>
+            </tr>
+            <tr>
+              <td><span class="metric-blue">ROI Hard</span></td>
+              <td>Conservative estimation based on industry knowledge; no explicit formula shown.</td>
+              <td>Tracked in the workbook for Sourcing, eProcurement, and Invoicing.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p><strong>Best dashboard direction:</strong> lead with <span class="metric-blue">Spend Under Management</span>, show <span class="metric-blue">On-Contract Savings (Hard)</span> and <span class="metric-blue">Potential Early Payment Discounts (Hard)</span> as the clearest hard-savings outputs, and use <span class="metric-blue">Contract Savings</span>, <span class="metric-blue">Estimated Sourcing Savings</span>, and <span class="metric-blue">ROI Hard</span> as the recurring workbook-backed value metrics.</p>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-hard">
+      <div class="reco">
+        <h2>Hard Savings</h2>
+        <div class="note">
+          <strong>Based on the research and current metrics - recommended path for Hard Savings</strong><br>
+          <span class="metric-blue">Blue</span> = already appears in the current documents from Tab 2. <span class="metric-red">Red</span> = recommended to add based on the external research.
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Saving Type</th>
+              <th>Saving Formula</th>
+              <th>Data Points Needed</th>
+              <th>What Will the Customer Need to Agree On</th>
+              <th>When to Use This</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>eProcurement</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">On-contract savings</span></li>
+                  <li><span class="metric-red">Maverick-spend recovery</span></li>
+                  <li><span class="metric-red">Savings realized through spend under management</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric">On-Contract Savings</span> = On-Contract Spend × Agreed Savings Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Maverick-Spend Recovery</span> = Spend Shifted to Compliant Buying × Agreed Savings Rate</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Spend under management</li>
+                  <li>On-contract spend</li>
+                  <li>Preferred supplier usage</li>
+                  <li>Addressable indirect spend outside the system</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>What qualifies as addressable spend</li>
+                  <li>The savings rate to use on compliant spend</li>
+                  <li>Whether avoided leakage counts as hard savings</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Prospects with weak compliance and low preferred-channel usage</li>
+                  <li>Customers where SUM and on-contract data already exist in the platform</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Invoicing</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Early payment discounts</span></li>
+                  <li><span class="metric-red">Duplicate-payment prevention</span></li>
+                  <li><span class="metric-red">Exception leakage reduction</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric">Early Payment Discount Savings</span> = Discount-Eligible Spend × Captured Discount Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Leakage Reduction</span> = Baseline Leakage − Future Leakage</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Invoice volumes</li>
+                  <li>Payment terms</li>
+                  <li>Discount eligibility</li>
+                  <li>Current exception and leakage rates</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Whether discount capture is counted as hard savings or working-capital benefit</li>
+                  <li>What current leakage baseline is valid</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Finance-led deals</li>
+                  <li>Accounts payable transformation conversations</li>
+                  <li>Customers with visible discount opportunities</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Contracts</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Contract savings</span></li>
+                  <li><span class="metric-red">Renewal leakage prevention</span></li>
+                  <li><span class="metric-red">Expiring-contract recovery</span></li>
+                  <li><span class="metric-red">Price protection</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric">Contract Savings</span> = Contracted Spend × Negotiated Price Improvement</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Renewal Savings</span> = Avoided Renewal Uplift + Recovered Contract Value</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Executed contracts</li>
+                  <li>Renewal values and dates</li>
+                  <li>Contract-linked spend</li>
+                  <li>Price change history</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Which contracts are in scope</li>
+                  <li>Whether saved uplift or recovered contracts count as hard savings</li>
+                  <li>How contract compliance is measured</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Customers with mature contracting processes</li>
+                  <li>Prospects with contract sprawl or renewal leakage</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Sourcing</td>
+              <td>
+                <ul>
+                  <li><span class="metric-red">Negotiated savings</span></li>
+                  <li><span class="metric-red">Awarded-event savings</span></li>
+                  <li><span class="metric-red">Auction savings</span></li>
+                  <li><span class="metric-blue">Sourcing</span></li>
+                  <li><span class="metric-blue">Sourcing Optimizer</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Negotiated Savings</span> = Baseline Amount − Awarded Amount</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Price Savings</span> = (Baseline Price − Awarded Price) × Quantity</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Optimization Savings</span> = Current Scenario Cost − Optimized Scenario Cost</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Baseline price or current amount</li>
+                  <li>Awarded amount</li>
+                  <li>Volume assumptions</li>
+                  <li>Event and auction award values</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The baseline methodology</li>
+                  <li>Whether projected award values are comparable to the baseline demand</li>
+                  <li>When negotiated savings become realized savings</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Best hard-savings module for prospects</li>
+                  <li>Best for CFO-level value story</li>
+                  <li>Best when sourcing events and awards are already visible in the platform</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Supplier Management</td>
+              <td>
+                <ul>
+                  <li><span class="metric-red">Usually an enablement layer, not a standalone hard-savings claim</span></li>
+                  <li><span class="metric-red">Possible downstream sourcing/compliance savings enablement</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Enabled Savings</span> = Incremental Compliant or Sourced Spend × Agreed Savings Rate</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Supplier onboarding counts</li>
+                  <li>Supplier enablement rates</li>
+                  <li>Sourcing participation</li>
+                  <li>Compliance status</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>That supplier-management value is being treated as a savings enabler, not direct hard savings</li>
+                  <li>That downstream savings can be attributed to supplier enablement</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Use only when connected to sourcing, compliance, or risk reduction outcomes</li>
+                  <li>Do not lead with this as pure hard savings</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Pay</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Early payment discount capture</span></li>
+                  <li><span class="metric-red">Payment-term optimization</span></li>
+                  <li><span class="metric-red">Payment error reduction</span></li>
+                  <li><span class="metric-red">Fraud-loss prevention when measurable</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric">Payment Discount Savings</span> = Discount-Eligible Payment Value × Captured Discount Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Payment Loss Reduction</span> = Baseline Payment Loss − Future Payment Loss</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Payment volumes</li>
+                  <li>Eligible discount windows</li>
+                  <li>Error or fraud-loss history</li>
+                  <li>Current payment-term mix</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Whether working-capital benefits are counted as hard savings</li>
+                  <li>What error/fraud baseline is acceptable</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Finance- and treasury-oriented opportunities</li>
+                  <li>Customers with payment-optimization programs</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>RMM</td>
+              <td>
+                <ul>
+                  <li><span class="metric-red">Savings protection</span></li>
+                  <li><span class="metric-red">Loss prevention</span></li>
+                  <li><span class="metric-red">Compliance-loss avoidance</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Protected Value</span> = Baseline Expected Loss − Mitigated Expected Loss</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Incident history</li>
+                  <li>Risk exposure estimates</li>
+                  <li>Compliance penalties or disruption cost assumptions</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Whether prevented losses can be shown as hard savings</li>
+                  <li>What risk-cost model is accepted</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Use mostly as value protection</li>
+                  <li>Only use as hard savings if the customer finance team accepts avoided-loss treatment</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>ASO</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Sourcing Optimizer</span></li>
+                  <li><span class="metric-red">Optimization-driven sourcing savings</span></li>
+                  <li><span class="metric-red">Award-scenario savings</span></li>
+                  <li><span class="metric-red">Modeled logistics or allocation cost reduction</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">ASO Savings</span> = Current Award Scenario Cost − Optimized Award Scenario Cost</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Bid data</li>
+                  <li>Constraints</li>
+                  <li>Freight or allocation cost inputs</li>
+                  <li>Current scenario cost</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>That modeled scenario savings are acceptable for the sales case</li>
+                  <li>Which cost elements are counted in the scenario comparison</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Best for complex sourcing categories</li>
+                  <li>Best when simple price-only comparisons understate value</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Suggested Hard-Savings Rules</h3>
+        <ul>
+          <li>Use Sourcing as the primary hard-savings anchor whenever possible.</li>
+          <li>Use eProcurement and Contracts to show savings realization and retention, not just identification.</li>
+          <li>Treat Supplier Management and RMM cautiously unless there is explicit agreement that enabled or avoided value counts as hard savings.</li>
+          <li>State the baseline, scope, and realization assumptions every time.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-soft">
+      <div class="reco">
+        <h2>Soft Savings</h2>
+        <div class="note">
+          <strong>Based on the research and current metrics - recommended path for Soft Savings</strong><br>
+          <span class="metric-blue">Blue</span> = already appears in the current documents from Tab 2. <span class="metric-purple">Purple</span> = partially ready in the current setup and needs refinement. <span class="metric-red">Red</span> = recommended to add based on the external research.
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Saving Type</th>
+              <th>Saving Formula</th>
+              <th>Data Points Needed</th>
+              <th>What Will the Customer Need to Agree On</th>
+              <th>When to Use This</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>eProcurement</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Requisition cycle-time reduction</span></li>
+                  <li><span class="metric-purple">Approval efficiency</span></li>
+                  <li><span class="metric-purple">Lower manual processing effort</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Labor Savings</span> = Requisition Volume × Time Saved per Requisition × Loaded Labor Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Cycle-Time Improvement</span> = Baseline Cycle Time − Future Cycle Time</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Requisition counts</li>
+                  <li>Approval steps</li>
+                  <li>Current cycle times</li>
+                  <li>Average labor rates</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The current process-time baseline</li>
+                  <li>The labor rate or FTE value to use</li>
+                  <li>Whether time savings are monetized or shown operationally only</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Operations-led buyers</li>
+                  <li>When procurement is overloaded</li>
+                  <li>When finance resists estimated hard savings</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Invoicing</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">No-touch invoice improvement</span></li>
+                  <li><span class="metric-purple">AP workload reduction</span></li>
+                  <li><span class="metric-purple">Invoice cycle-time reduction</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">AP Labor Savings</span> = Invoice Volume × Time Saved per Invoice × Loaded Labor Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Manual Share Reduction</span> = Baseline Manual Share − Future Manual Share</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Invoice counts</li>
+                  <li>No-touch rates</li>
+                  <li>Manual handling time</li>
+                  <li>Cycle-time baseline</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The manual-effort baseline</li>
+                  <li>Whether AP productivity is monetized or shown as capacity release</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>AP transformation stories</li>
+                  <li>Customers focused on automation</li>
+                  <li>Prospects with high manual invoice handling</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Contracts</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Contract cycle-time reduction</span></li>
+                  <li><span class="metric-purple">Lower legal/admin effort</span></li>
+                  <li><span class="metric-purple">Improved review efficiency</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Contract Labor Savings</span> = Contract Volume × Hours Saved per Contract × Loaded Labor Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Contract Cycle-Time Improvement</span> = Baseline Approval Time − Future Approval Time</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Contract counts</li>
+                  <li>Approval times</li>
+                  <li>Drafting/review effort</li>
+                  <li>Legal and procurement labor rates</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The current review-time baseline</li>
+                  <li>Who owns the saved capacity</li>
+                  <li>Whether legal productivity is monetized</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Legal-heavy or contracting-heavy organizations</li>
+                  <li>When contract throughput is the main pain point</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Sourcing</td>
+              <td>
+                <ul>
+                  <li><span class="metric-red">Faster sourcing-event turnaround</span></li>
+                  <li><span class="metric-purple">Reduced sourcing admin effort</span></li>
+                  <li><span class="metric-purple">Higher template-driven efficiency</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Sourcing Labor Savings</span> = Event Volume × Hours Saved per Event × Loaded Labor Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Event Cycle-Time Improvement</span> = Baseline Event Duration − Future Event Duration</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Event counts</li>
+                  <li>Cycle times</li>
+                  <li>Template usage</li>
+                  <li>Buyer effort estimates</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The event-effort baseline</li>
+                  <li>Whether buyer time saved is monetized</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>When the customer wants a throughput story alongside negotiated savings</li>
+                  <li>When event execution is inconsistent</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Supplier Management</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Faster supplier onboarding</span></li>
+                  <li><span class="metric-purple">Reduced supplier admin effort</span></li>
+                  <li><span class="metric-red">Better data quality and qualification efficiency</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Supplier Labor Savings</span> = Supplier Volume × Hours Saved per Onboarding × Loaded Labor Rate</span></li>
+                  <li><span class="formula"><span class="formula-metric-red">Onboarding Cycle-Time Improvement</span> = Baseline Onboarding Time − Future Onboarding Time</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Supplier counts</li>
+                  <li>Enablement rates</li>
+                  <li>Registration cycle times</li>
+                  <li>Manual support effort</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The onboarding baseline</li>
+                  <li>Whether improved enablement is monetized or shown operationally</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Best soft-savings lead for Supplier Management</li>
+                  <li>Best when supplier-adoption friction is visible</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>Pay</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Payment-process efficiency</span></li>
+                  <li><span class="metric-purple">Lower manual treasury/AP coordination effort</span></li>
+                  <li><span class="metric-red">Improved payment visibility</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Payment Process Savings</span> = Payment Volume × Time Saved per Payment × Loaded Labor Rate</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Payment counts</li>
+                  <li>Process steps</li>
+                  <li>Exception volumes</li>
+                  <li>Operations effort baseline</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The current process baseline</li>
+                  <li>Whether treasury efficiency should be monetized</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>When hard discount savings are uncertain but process value is obvious</li>
+                  <li>Finance modernization discussions</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>RMM</td>
+              <td>
+                <ul>
+                  <li><span class="metric-red">Lower manual monitoring effort</span></li>
+                  <li><span class="metric-red">Faster issue triage and remediation</span></li>
+                  <li><span class="metric-red">Improved governance efficiency</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">Risk Management Labor Savings</span> = Issue Volume × Time Saved per Issue × Loaded Labor Rate</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Risk events</li>
+                  <li>Monitoring effort</li>
+                  <li>Remediation effort</li>
+                  <li>Compliance team labor rates</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The current monitoring effort baseline</li>
+                  <li>Whether governance effort should be monetized</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Best soft-savings lead for RMM</li>
+                  <li>Best for regulated or risk-heavy environments</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td>ASO</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Faster scenario analysis</span></li>
+                  <li><span class="metric-purple">Reduced analyst modeling effort</span></li>
+                  <li><span class="metric-purple">Better stakeholder decision speed</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul class="formula-list">
+                  <li><span class="formula"><span class="formula-metric-red">ASO Labor Savings</span> = Scenario Volume × Hours Saved per Scenario × Loaded Labor Rate</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Number of optimization events</li>
+                  <li>Scenario counts</li>
+                  <li>Analyst effort per event</li>
+                  <li>Decision-cycle time baseline</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>The current manual modeling baseline</li>
+                  <li>Whether decision-speed value is monetized or positioned qualitatively</li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li>Use alongside ASO hard savings</li>
+                  <li>Useful when optimization complexity is a recognized pain point</li>
+                </ul>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-example">
+      <div class="reco">
+        <h2>Example</h2>
+        <div class="note">
+          This is a mock prospect example showing how to package a credible savings story for a sales conversation.<br>
+          <span class="metric-blue">Blue</span> = already ready in current materials. <span class="metric-purple">Purple</span> = partially ready in the current setup and needs refinement. <span class="metric-red">Red</span> = should be built or added.
+        </div>
+
+        <h3>Mock Prospect</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Example Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Company</td>
+              <td>Large North American higher-education institution</td>
+            </tr>
+            <tr>
+              <td>Operating Budget</td>
+              <td>Approximately $50M annually</td>
+            </tr>
+            <tr>
+              <td>Current State</td>
+              <td>Decentralized buying across departments, inconsistent use of preferred suppliers, limited sourcing discipline for non-payroll spend, manual invoice handling, and uneven contract visibility</td>
+            </tr>
+            <tr>
+              <td>Primary Pain</td>
+              <td>Finance wants measurable savings without disrupting campus operations, procurement wants stronger policy compliance, AP wants automation, and leadership wants better control of grants, departmental spend, and supplier risk</td>
+            </tr>
+            <tr>
+              <td>Typical Spend Areas</td>
+              <td>Facilities, IT, lab and classroom supplies, temporary services, maintenance, food services, professional services, and departmental purchasing</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>What We Would Show</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Hard Savings Metrics</th>
+              <th>Soft Savings Metrics</th>
+              <th>The Story</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Sourcing</td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Negotiated Savings</span></li>
+                  <li><span class="metric-purple">Awarded-Event Savings</span></li>
+                  <li><span class="metric-purple">Auction Savings</span></li>
+                  <li><span class="metric-purple">Optimization Savings</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Faster event cycle times</span></li>
+                  <li><span class="metric-purple">More consistent evaluations</span></li>
+                  <li><span class="metric-purple">Stronger supplier participation</span></li>
+                  <li><span class="metric-purple">Improved award governance</span></li>
+                </ul>
+              </td>
+              <td>This is the lead value story for the institution because it creates the clearest finance-facing case. Baseline-to-award logic is easy to explain for IT, facilities, services, and recurring campus spend.</td>
+            </tr>
+            <tr>
+              <td>eProcurement</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">On-Contract Savings</span></li>
+                  <li><span class="metric-purple">Maverick-Spend Recovery</span></li>
+                  <li><span class="metric-purple">Spend Under Management Expansion</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Faster requisition approvals</span></li>
+                  <li><span class="metric-purple">Fewer manual touches</span></li>
+                  <li><span class="metric-purple">Better user adoption</span></li>
+                  <li><span class="metric-purple">Stronger policy compliance</span></li>
+                </ul>
+              </td>
+              <td>This shows the platform does not just identify savings through sourcing. It helps the institution realize and retain value by guiding departmental buying toward preferred suppliers and contract-backed channels.</td>
+            </tr>
+            <tr>
+              <td>Contracts</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Contract Savings</span></li>
+                  <li><span class="metric-purple">Renewal Savings</span></li>
+                  <li><span class="metric-purple">Expiring-Contract Recovery</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">Reduced contract cycle time</span></li>
+                  <li><span class="metric-purple">eSignature efficiency</span></li>
+                  <li><span class="metric-purple">Lower admin effort</span></li>
+                  <li><span class="metric-purple">Less renewal leakage</span></li>
+                </ul>
+              </td>
+              <td>This helps legal, procurement, and finance align around realized value rather than unmanaged awards. It is especially relevant for institution-wide agreements and renewals that are often handled unevenly across departments.</td>
+            </tr>
+            <tr>
+              <td>Invoicing / Pay</td>
+              <td>
+                <ul>
+                  <li><span class="metric-blue">Early Payment Discount Savings</span></li>
+                  <li><span class="metric-purple">Payment Loss Reduction</span></li>
+                  <li><span class="metric-purple">Leakage Reduction</span></li>
+                </ul>
+              </td>
+              <td>
+                <ul>
+                  <li><span class="metric-purple">No-touch invoice growth</span></li>
+                  <li><span class="metric-purple">Lower AP workload</span></li>
+                  <li><span class="metric-purple">Faster invoice cycle times</span></li>
+                  <li><span class="metric-purple">Stronger audit readiness</span></li>
+                </ul>
+              </td>
+              <td>This broadens the value case beyond procurement into finance and working capital. It is a strong add-on story for a higher-education institution with high-volume suppliers and manual AP effort.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Recommended Sales Narrative</h3>
+        <ul>
+          <li>Start with <strong>Sourcing</strong> to establish a measurable hard-savings story on addressable campus spend categories.</li>
+          <li>Move next to <strong>eProcurement</strong> to show how the platform channels faculty and departmental buying toward preferred suppliers and contract-backed purchasing.</li>
+          <li>Add <strong>Contracts</strong> to show savings retention, renewal control, and better management of institution-wide supplier agreements.</li>
+          <li>Finish with <strong>Invoicing and Pay</strong> to bring finance into the story with early payment discounts, automation, and AP efficiency.</li>
+        </ul>
+
+        <h3>Mock Executive Summary for the Prospect</h3>
+        <p>For this prospect, we would position the platform as the system that identifies savings through sourcing, realizes savings through compliant campus buying, protects savings through stronger contract control, and extends value into finance through invoice and payment optimization. The strongest hard-savings conversation would center on negotiated sourcing savings, on-contract savings, and early payment discount capture. The strongest soft-savings conversation would focus on approval speed, AP automation, contract efficiency, and reduced manual effort across decentralized departments.</p>
+
+        <h3>How to Keep the Story Credible</h3>
+        <ul>
+          <li>Present hard savings separately from soft savings.</li>
+          <li>State assumptions clearly for any prospect-stage estimates.</li>
+          <li>Use sourcing and on-contract metrics as the main bridge between benchmark value and realized value.</li>
+          <li>Keep the value story focused on non-payroll and addressable supplier spend rather than the full institutional budget.</li>
+          <li>Avoid leading with Supplier Management or RMM as direct hard-savings modules unless the buyer already values risk and compliance as financial protection.</li>
+        </ul>
+
+        <h3>Simple Pitch Version</h3>
+        <p>If we were selling to this prospect, we would say: the platform helps your institution create savings in sourcing, realize those savings through guided and compliant departmental buying, protect them through better contract management, and extend them into finance through invoice and payment optimization. That gives procurement, finance, legal, and campus stakeholders a reason to support the same platform.</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const buttons = document.querySelectorAll('.tab-btn');
+    const panels = {
+      web: document.getElementById('panel-web'),
+      status: document.getElementById('panel-status'),
+      hard: document.getElementById('panel-hard'),
+      soft: document.getElementById('panel-soft'),
+      example: document.getElementById('panel-example')
+    };
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        buttons.forEach((b) => b.classList.remove('active'));
+        Object.values(panels).forEach((panel) => panel.classList.remove('active'));
+        button.classList.add('active');
+        panels[button.dataset.tab].classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
